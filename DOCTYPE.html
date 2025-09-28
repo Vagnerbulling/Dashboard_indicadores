@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard de Indicadores - TI</title>
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f4f4f4; color: #333; margin: 0; padding: 20px; }
+        .container { max-width: 1200px; margin: auto; padding: 20px; background: #fff; border-radius: 8px; box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1); }
+        h1 { text-align: center; color: #007BFF; }
+        h2 { text-align: center; color: #495057; font-size: 1.2em; }
+        .dashboard-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 20px; margin-top: 20px; }
+        .card { background: #e9ecef; padding: 20px; border-radius: 8px; text-align: center; }
+        .card h3 { margin-top: 0; color: #495057; font-size: 1.2em; }
+        .card p { font-size: 2.5em; font-weight: bold; margin: 5px 0 0; color: #007BFF; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>Dashboard de Indicadores de Manutenção</h1>
+
+    <h2>Indicadores de Eficiência Técnica</h2>
+    <div class="dashboard-grid">
+        <div class="card">
+            <h3>MTTR (Tempo Médio para Reparo)</h3>
+            <p id="mttr-value">Carregando...</p>
+        </div>
+        <div class="card">
+            <h3>FTFR (Taxa de Correção na 1ª Visita)</h3>
+            <p id="ftfr-value">Carregando...</p>
+        </div>
+        <div class="card">
+            <h3>Taxa de Retrabalho</h3>
+            <p id="retrabalho-geral-value">Carregando...</p>
+        </div>
+        <div class="card">
+            <h3>Tempo de Reabastecimento</h3>
+            <p id="reabastecimento-value">Carregando...</p>
+        </div>
+    </div>
+
+    <h2>Análise de Alocação de Horas</h2>
+    <div class="dashboard-grid">
+        <div class="card">
+            <h3>HH Corretiva</h3>
+            <p id="hh-corretiva-value">Carregando...</p>
+        </div>
+        <div class="card">
+            <h3>HH Preditiva</h3>
+            <p id="hh-preditiva-value">Carregando...</p>
+        </div>
+        <div class="card">
+            <h3>HH Preventiva</h3>
+            <p id="hh-preventiva-value">Carregando...</p>
+        </div>
+    </div>
+
+    <h2>Análise de Custos e Qualidade</h2>
+    <div class="dashboard-grid">
+        <div class="card">
+            <h3>Trocas Prematuras</h3>
+            <p id="trocas-prematuras-value">Carregando...</p>
+        </div>
+        <div class="card">
+            <h3>Retorno Sem Peças</h3>
+            <p id="retorno-sem-pecas-value">Carregando...</p>
+        </div>
+        <div class="card">
+            <h3>Retorno C/ Peças</h3>
+            <p id="retorno-com-pecas-value">Carregando...</p>
+        </div>
+        <div class="card">
+            <h3>Custo Total do Retrabalho</h3>
+            <p id="custo-retrabalho-value">Carregando...</p>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Substitua o valor abaixo com a URL de publicação da sua planilha do Google Sheets (formato CSV)
+    const GOOGLE_SHEET_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vScAJ4c47kdVeygLUYP-t-L60TEHK0Da_AanvH3glAatu_r5qpEYgyhIo7G3om1VIdMkC0fcnmErrtg/pub?gid=819043684&single=true&output=csv';
+
+    async function fetchData() {
+        try {
+            const response = await fetch(GOOGLE_SHEET_URL);
+            const data = await response.text();
+            
+            const rows = data.split('\n').slice(1);
+            let totalTimeCorrective = 0;
+            let totalFailures = 0;
+            let totalHoursCorrective = 0;
+            let totalHoursPreventive = 0;
+            let totalHoursPredictive = 0;
+            let totalHoursWorked = 0;
+            let prematureExchanges = 0;
+            let totalCalls = 0;
+            let fixedFirstVisit = 0;
+            let totalRefillTime = 0;
+            let refillCount = 0;
+            let totalCallsCompleted = 0;
+            let totalRework = 0;
+            let reworkNoParts = 0;
+            let reworkWithParts = 0;
+            let totalReworkCost = 0;
+            let callsToAnalyzeRework = [];
+
+            // Adicionando um contador para os retrabalhos, pois a mesma OS pode ser um retrabalho
+            let totalReworks = 0;
+            let reworkReasons = {};
+
+            rows.forEach(row => {
+                const columns = row.split(',');
+                if (columns.length > 5 && columns[1]?.trim() !== '') {
+                    const hoursTotal = parseFloat(columns[5]);
+                    const hoursCorrective = parseFloat(columns[6]);
+                    const hoursPreventive = parseFloat(columns[8]);
+                    const hoursPredictive = parseFloat(columns[7]);
+                    const isFailure = columns[9]?.trim().toUpperCase() === 'SIM';
+                    const isPrematureExchange = columns[10]?.trim().toUpperCase() === 'SIM';
+                    const solvedFirstVisit = columns[11]?.trim().toUpperCase() === 'SIM';
+                    const reworkReason = columns[12]?.trim();
+                    const reworkCost = parseFloat(columns[13]) || 0;
+                    const requestDate = columns[15]?.trim();
+                    const deliveryDate = columns[16]?.trim();
+
+                    // MTTR
+                    if (isFailure) {
+                        totalTimeCorrective += hoursCorrective;
+                        totalFailures++;
+                    }
+
+                    // HH
+                    if (!isNaN(hoursTotal)) {
+                        totalHoursWorked += hoursTotal;
+                    }
+                    if (!isNaN(hoursCorrective)) {
+                        totalHoursCorrective += hoursCorrective;
+                    }
+                    if (!isNaN(hoursPreventive)) {
+                        totalHoursPreventive += hoursPreventive;
+                    }
+                    if (!isNaN(hoursPredictive)) {
+                        totalHoursPredictive += hoursPredictive;
+                    }
+
+                    // Trocas Prematuras
+                    if (isPrematureExchange) {
+                        prematureExchanges++;
+                    }
+
+                    // FTFR e Taxa de Retrabalho
+                    totalCalls++;
+                    if (solvedFirstVisit) {
+                        fixedFirstVisit++;
+                    }
+                    if (reworkReason !== '') {
+                        totalReworks++;
+                        totalReworkCost += reworkCost;
+                        if (reworkReason.includes('Peça') || reworkReason.includes('Esquecimento')) {
+                            reworkWithParts++;
+                        } else {
+                            reworkNoParts++;
+                        }
+                    }
+
+                    // Tempo de Reabastecimento
+                    if (requestDate && deliveryDate) {
+                        const reqTime = new Date(requestDate).getTime();
+                        const delTime = new Date(deliveryDate).getTime();
+                        const diffInHours = (delTime - reqTime) / (1000 * 60 * 60);
+                        if (!isNaN(diffInHours)) {
+                            totalRefillTime += diffInHours;
+                            refillCount++;
+                        }
+                    }
+                }
+            });
+
+            // Cálculos Finais
+            const mttr = totalFailures > 0 ? (totalTimeCorrective / totalFailures).toFixed(2) : 0;
+            const hhCorrective = totalHoursWorked > 0 ? ((totalHoursCorrective / totalHoursWorked) * 100).toFixed(2) : 0;
+            const hhPreventive = totalHoursWorked > 0 ? ((totalHoursPreventive / totalHoursWorked) * 100).toFixed(2) : 0;
+            const hhPredictive = totalHoursWorked > 0 ? ((totalHoursPredictive / totalHoursWorked) * 100).toFixed(2) : 0;
+            const ftfr = totalCalls > 0 ? ((fixedFirstVisit / totalCalls) * 100).toFixed(2) : 0;
+            const avgRefillTime = refillCount > 0 ? (totalRefillTime / refillCount).toFixed(2) : 0;
+            const reworkRate = totalCalls > 0 ? ((totalReworks / totalCalls) * 100).toFixed(2) : 0;
+            const reworkNoPartsRate = totalReworks > 0 ? ((reworkNoParts / totalReworks) * 100).toFixed(2) : 0;
+            const reworkWithPartsRate = totalReworks > 0 ? ((reworkWithParts / totalReworks) * 100).toFixed(2) : 0;
+            const totalReworkCostFormatted = totalReworkCost.toFixed(2);
+            
+            // Atualiza o Dashboard
+            document.getElementById('mttr-value').innerText = `${mttr}h`;
+            document.getElementById('hh-corretiva-value').innerText = `${hhCorrective}%`;
+            document.getElementById('hh-preventiva-value').innerText = `${hhPreventiva}%`;
+            document.getElementById('hh-preditiva-value').innerText = `${hhPredictive}%`;
+            document.getElementById('trocas-prematuras-value').innerText = prematureExchanges;
+            document.getElementById('ftfr-value').innerText = `${ftfr}%`;
+            document.getElementById('reabastecimento-value').innerText = `${avgRefillTime}h`;
+            document.getElementById('retrabalho-geral-value').innerText = `${reworkRate}%`;
+            document.getElementById('retorno-sem-pecas-value').innerText = `${reworkNoPartsRate}%`;
+            document.getElementById('retorno-com-pecas-value').innerText = `${reworkWithPartsRate}%`;
+            document.getElementById('custo-retrabalho-value').innerText = `R$ ${totalReworkCostFormatted}`;
+
+        } catch (error) {
+            console.error('Erro ao buscar ou processar os dados:', error);
+            alert('Não foi possível carregar os dados. Verifique a URL da sua planilha e a conexão com a internet.');
+        }
+    }
+
+    fetchData();
+</script>
+
+</body>
+</html>
