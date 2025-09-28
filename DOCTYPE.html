@@ -2,7 +2,7 @@
 <html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-s/cale=1.0">
     <title>Dashboard de Indicadores - TI</title>
     <style>
         body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f4f4f4; color: #333; margin: 0; padding: 20px; }
@@ -78,7 +78,7 @@
 </div>
 
 <script>
-    const GOOGLE_SHEET_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSoD2F3DJsPukyWKk8D0m7YcoKBxY65cRiFLuYLwVUM4BXNPByfeGovCtbrRR0OUBm8aJ6fodwvnzgT/pub?gid=2097254021&single=true&output=csv';
+    const GOOGLE_SHEET_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSoD2F3DJsPukyWKk8D0m7YcoKBxY65cRiFLuYLwVUM4BXNPByfeGovCtbrRR0OUBm8aJ6fodwvnzgT/pub?gid=2097254021&single=true&output=csv'; // Substitua por sua URL
 
     async function fetchData() {
         try {
@@ -104,6 +104,7 @@
 
             rows.forEach(row => {
                 const columns = row.split(',');
+                // Verifique se a linha é válida antes de processar
                 if (columns.length > 5 && columns[1]?.trim() !== '') {
                     const hoursTotal = parseFloat(columns[5]);
                     const hoursCorrective = parseFloat(columns[6]);
