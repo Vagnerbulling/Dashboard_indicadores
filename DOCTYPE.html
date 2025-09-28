@@ -78,7 +78,6 @@
 </div>
 
 <script>
-    // Substitua o valor abaixo com a URL de publicação da sua planilha do Google Sheets (formato CSV)
     const GOOGLE_SHEET_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vScAJ4c47kdVeygLUYP-t-L60TEHK0Da_AanvH3glAatu_r5qpEYgyhIo7G3om1VIdMkC0fcnmErrtg/pub?gid=819043684&single=true&output=csv';
 
     async function fetchData() {
@@ -98,16 +97,10 @@
             let fixedFirstVisit = 0;
             let totalRefillTime = 0;
             let refillCount = 0;
-            let totalCallsCompleted = 0;
-            let totalRework = 0;
+            let totalReworks = 0;
             let reworkNoParts = 0;
             let reworkWithParts = 0;
             let totalReworkCost = 0;
-            let callsToAnalyzeRework = [];
-
-            // Adicionando um contador para os retrabalhos, pois a mesma OS pode ser um retrabalho
-            let totalReworks = 0;
-            let reworkReasons = {};
 
             rows.forEach(row => {
                 const columns = row.split(',');
@@ -124,13 +117,11 @@
                     const requestDate = columns[15]?.trim();
                     const deliveryDate = columns[16]?.trim();
 
-                    // MTTR
                     if (isFailure) {
                         totalTimeCorrective += hoursCorrective;
                         totalFailures++;
                     }
 
-                    // HH
                     if (!isNaN(hoursTotal)) {
                         totalHoursWorked += hoursTotal;
                     }
@@ -143,13 +134,10 @@
                     if (!isNaN(hoursPredictive)) {
                         totalHoursPredictive += hoursPredictive;
                     }
-
-                    // Trocas Prematuras
                     if (isPrematureExchange) {
                         prematureExchanges++;
                     }
 
-                    // FTFR e Taxa de Retrabalho
                     totalCalls++;
                     if (solvedFirstVisit) {
                         fixedFirstVisit++;
@@ -164,7 +152,6 @@
                         }
                     }
 
-                    // Tempo de Reabastecimento
                     if (requestDate && deliveryDate) {
                         const reqTime = new Date(requestDate).getTime();
                         const delTime = new Date(deliveryDate).getTime();
@@ -177,7 +164,6 @@
                 }
             });
 
-            // Cálculos Finais
             const mttr = totalFailures > 0 ? (totalTimeCorrective / totalFailures).toFixed(2) : 0;
             const hhCorrective = totalHoursWorked > 0 ? ((totalHoursCorrective / totalHoursWorked) * 100).toFixed(2) : 0;
             const hhPreventive = totalHoursWorked > 0 ? ((totalHoursPreventive / totalHoursWorked) * 100).toFixed(2) : 0;
@@ -189,7 +175,6 @@
             const reworkWithPartsRate = totalReworks > 0 ? ((reworkWithParts / totalReworks) * 100).toFixed(2) : 0;
             const totalReworkCostFormatted = totalReworkCost.toFixed(2);
             
-            // Atualiza o Dashboard
             document.getElementById('mttr-value').innerText = `${mttr}h`;
             document.getElementById('hh-corretiva-value').innerText = `${hhCorrective}%`;
             document.getElementById('hh-preventiva-value').innerText = `${hhPreventiva}%`;
@@ -212,6 +197,4 @@
 </script>
 
 </body>
-
 </html>
-
